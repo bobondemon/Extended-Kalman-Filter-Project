@@ -3,83 +3,106 @@ Self-Driving Car Engineer Nanodegree Program
 
 ---
 
-## Dependencies
+## [Rubric](https://review.udacity.com/#!/rubrics/748/view) Points
 
-* cmake >= 3.5
- * All OSes: [click here for installation instructions](https://cmake.org/install/)
-* make >= 4.1
-  * Linux: make is installed by default on most Linux distros
-  * Mac: [install Xcode command line tools to get make](https://developer.apple.com/xcode/features/)
-  * Windows: [Click here for installation instructions](http://gnuwin32.sourceforge.net/packages/make.htm)
-* gcc/g++ >= 5.4
-  * Linux: gcc / g++ is installed by default on most Linux distros
-  * Mac: same deal as make - [install Xcode command line tools]((https://developer.apple.com/xcode/features/)
-  * Windows: recommend using [MinGW](http://www.mingw.org/)
+---
+### 1. Accuracy for data-1
 
-## Basic Build Instructions
+> The px, py, vx, vy output coordinates have an RMSE <= [0.08, 0.08, 0.60, 0.60] when using the file: "sample-laser-radar-measurement-data-1.txt".
 
-1. Clone this repo.
-2. Make a build directory: `mkdir build && cd build`
-3. Compile: `cmake .. && make` 
-   * On windows, you may need to run: `cmake .. -G "Unix Makefiles" && make`
-4. Run it: `./ExtendedKF path/to/input.txt path/to/output.txt`. You can find
-   some sample inputs in 'data/'.
-    - eg. `./ExtendedKF ../data/sample-laser-radar-measurement-data-1.txt output.txt`
+I got
 
-## Editor Settings
+| My Accuracy | Target Accuracy|
+|:-------------:|:-------------:|
+| 0.0651648     | 0.08 |
+| 0.0605379     | 0.08 |
+| 0.533212      | 0.60 |
+| 0.544193      | 0.60 |
 
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
+---
+### 2. Accuracy for data-2
 
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
+> The px, py, vx, vy output coordinates have an RMSE <= [0.20, 0.20, .50, .85] when using the file: "sample-laser-radar-measurement-data-2.txt".
 
-## Code Style
+I got
 
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
+| My Accuracy | Target Accuracy|
+|:-------------:|:-------------:|
+| 0.185495      | 0.20 |
+| 0.190302      | 0.20 |
+| 0.487137      | 0.50 |
+| 0.810657      | 0.85 |
 
-## Generating Additional Data
+---
+### 3. Algorithm-1
 
-This is optional!
+> Your Sensor Fusion algorithm follows the general processing flow as taught in the preceding lessons.
 
-If you'd like to generate your own radar and lidar data, see the
-[utilities repo](https://github.com/udacity/CarND-Mercedes-SF-Utilities) for
-Matlab scripts that can generate additional data.
+I followed the flow taught in the lesson. Most building blocks, including Predict(), UpdateEKF(), and Update(), are actually the codes in the lecture.
 
-## Project Instructions and Rubric
 
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
+---
+### 4. Algorithm-2
 
-More information is only accessible by people who are already enrolled in Term 2
-of CarND. If you are enrolled, see [the project page](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/12dd29d8-2755-4b1b-8e03-e8f16796bea8)
-for instructions and the project rubric.
+> Your Kalman Filter algorithm handles the first measurements appropriately.
 
-## Hints!
+I handled the first measurements as follows:
 
-* You don't have to follow this directory structure, but if you do, your work
-  will span all of the .cpp files here. Keep an eye out for TODOs.
+1. RADAR:
+``` python
+ekf_.x_ << cos(theta)*rho, sin(theta)*rho, cos(theta)*measurement_pack.raw_measurements_(2), sin(theta)*measurement_pack.raw_measurements_(2);
+```
 
-## Call for IDE Profiles Pull Requests
+2. LASER
+``` python
+ekf_.x_ << measurement_pack.raw_measurements_(0), measurement_pack.raw_measurements_(1), 1, 1;
+```
 
-Help your fellow students!
+---
+### 5. Algorithm-3
 
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to we ensure
-that students don't feel pressured to use one IDE or another.
+> Your Kalman Filter algorithm first predicts then updates.
 
-However! We'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
+Sure it is!
+``` c++
+  ekf_.Predict();
+  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+    // Radar updates
+      ekf_.H_ = tools.CalculateJacobian(ekf_.x_);
+      ekf_.R_ = R_radar_;
+      ekf_.UpdateEKF(measurement_pack.raw_measurements_);
+  } else {
+    // Laser updates
+      ekf_.H_ = H_laser_;
+      ekf_.R_ = R_laser_;
+      ekf_.Update(measurement_pack.raw_measurements_);
+  }
+```
 
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
+---
+### 6. Algorithm-4
 
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
+> Your Kalman Filter can handle radar and lidar measurements.
 
-Regardless of the IDE used, every submitted project must
-still be compilable with cmake and make.
+Sure it is! As shown in the above code snippet, I update with `UpdateEKF()` and `Update()` according to what type of sensor is.
+
+---
+### 7. Code Efficiency
+
+> Your algorithm should avoid unnecessary calculations.
+
+1. I avoid running the same calculation in `Q_`, `Update()`, and `UpdateEKF()`.
+2. No complex data structures are used. In fact, the template codes provided are well structured and most variables we need are defined already.
+3. No Unnecessary control flow checks. Only two parts of checking and both are necessary:
+  * `Update()`
+  check if 0 to avoid `sqrt(0)` and divid 0
+  `if (px==0 && py==0){return;}`
+  * `CalculateJacobian()`
+  check to avoid divid 0
+  ```c++
+  if(fabs(c1) < 0.0001){
+          std::cout << "CalculateJacobian () - Error - Division by Zero" << std::endl;
+          c1 = 0.0001;
+  //        return Hj;
+      }
+  ```
