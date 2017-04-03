@@ -1,9 +1,5 @@
-# Extended Kalman Filter Project Starter Code
+## Extended Kalman Filter Project Starter Code. [Rubric](https://review.udacity.com/#!/rubrics/748/view) Points
 Self-Driving Car Engineer Nanodegree Program
-
----
-
-## [Rubric](https://review.udacity.com/#!/rubrics/748/view) Points
 
 ---
 ### 1. Accuracy for data-1
@@ -94,11 +90,8 @@ Sure it is! As shown in the above code snippet, I update with `UpdateEKF()` and 
 1. I avoid running the same calculation in `Q_`, `Update()`, and `UpdateEKF()`.
 2. No complex data structures are used. In fact, the template codes provided are well structured and most variables we need are defined already.
 3. No Unnecessary control flow checks. Only two parts of checking and both are necessary:
-  * `Update()`
-  check if 0 to avoid `sqrt(0)` and divid 0
-  `if (px==0 && py==0){return;}`
-  * `CalculateJacobian()`
-  check to avoid divid 0
+  * `Update()`: check if 0 to avoid `sqrt(0)` and divid 0. Code: `if (px==0 && py==0){return;}`
+  * `CalculateJacobian()`: check to avoid divid 0
   ```c++
   if(fabs(c1) < 0.0001){
           std::cout << "CalculateJacobian () - Error - Division by Zero" << std::endl;
