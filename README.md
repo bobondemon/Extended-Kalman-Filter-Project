@@ -54,6 +54,13 @@ ekf_.x_ << cos(theta)*rho, sin(theta)*rho, cos(theta)*measurement_pack.raw_measu
 ekf_.x_ << measurement_pack.raw_measurements_(0), measurement_pack.raw_measurements_(1), 1, 1;
 ```
 
+Before calling those assiangment, a checking on nonsence sensor data is done by:
+``` python
+// Avoid initializing nonsence data
+if (ekf_.x_[0] < MIN_SENSOR_VALUE && ekf_.x_[1] < MIN_SENSOR_VALUE)
+    return;
+```
+
 ---
 ### 5. Algorithm-3
 
@@ -61,7 +68,11 @@ ekf_.x_ << measurement_pack.raw_measurements_(0), measurement_pack.raw_measureme
 
 Sure it is!
 ``` c++
-  ekf_.Predict();
+  // If two measurements are closed to each other, then don't predict
+  if ( dt > 0.001 )
+  {
+      ekf_.Predict();
+  }
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
     // Radar updates
       ekf_.H_ = tools.CalculateJacobian(ekf_.x_);
