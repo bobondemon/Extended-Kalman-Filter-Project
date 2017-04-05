@@ -3,6 +3,8 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
+#define MIN_SENSOR_VALUE    0.000001
+
 KalmanFilter::KalmanFilter() {}
 
 KalmanFilter::~KalmanFilter() {}
@@ -32,12 +34,18 @@ void KalmanFilter::Update(const VectorXd &z) {
   TODO:
     * update the state by using Kalman Filter equations
   */
+    // processing nonsense data (both data are too small)
+    if (x_(0)<=min_sensor_value_ && x_(1)<=min_sensor_value_)
+    {
+        return;
+    }
+
     VectorXd z_pred = H_ * x_;
     VectorXd y = z - z_pred;
     MatrixXd Ht = H_.transpose();
-    MatrixXd S = H_ * P_ * Ht + R_;
-    MatrixXd Si = S.inverse();
     MatrixXd PHt = P_ * Ht;
+    MatrixXd S = H_ * PHt + R_;
+    MatrixXd Si = S.inverse();
     MatrixXd K = PHt * Si;
 
     //new estimate
@@ -52,24 +60,26 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   TODO:
     * update the state by using Extended Kalman Filter equations
   */
+    // processing nonsense data (both data are too small)
+    if (x_(0)<=min_sensor_value_ && x_(1)<=min_sensor_value_)
+    {
+        return;
+    }
+    x_(0) = (x_(0)<=MIN_SENSOR_VALUE) ? MIN_SENSOR_VALUE : x_(0);
+
     VectorXd z_pred = VectorXd(3);
     float px=x_(0);
     float py=x_(1);
     float vx=x_(2);
     float vy=x_(3);
-    if (px==0 && py==0)
-    {
-        return;
-    }
-
-    z_pred(0) = sqrt(px*px+py*py);
-    z_pred(1) = atan2(py,px); // CHECK: the resulting angle phi in the y vector should be adjusted so that it is between -pi and pi.
-    z_pred(2) = (px*vx+py*vy)/z_pred(0);
+    z_pred(0) = sqrt(px*px+py*py); // This operation is safe since px and py have been protected by min_sensor_value_
+    z_pred(1) = atan2(py,px); // This operation is safe since px is set to be >=min_sensor_value_
+    z_pred(2) = (px*vx+py*vy)/z_pred(0); // This operation is safe since px and py have been protected by min_sensor_value_
     VectorXd y = z - z_pred;
     MatrixXd Ht = H_.transpose();
-    MatrixXd S = H_ * P_ * Ht + R_;
-    MatrixXd Si = S.inverse();
     MatrixXd PHt = P_ * Ht;
+    MatrixXd S = H_ * PHt + R_;
+    MatrixXd Si = S.inverse();
     MatrixXd K = PHt * Si;
 
     //new estimate

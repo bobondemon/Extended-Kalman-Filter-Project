@@ -23,6 +23,9 @@ public:
   // measurement covariance matrix
   Eigen::MatrixXd R_;
 
+  // MIN_SENSOR_VALUE
+  float min_sensor_value_;
+
   /**
    * Constructor
    */
