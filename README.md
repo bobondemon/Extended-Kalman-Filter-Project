@@ -110,3 +110,59 @@ Sure it is! As shown in the above code snippet, I update with `UpdateEKF()` and 
   //        return Hj;
       }
   ```
+
+---
+### 8. Corresponding modifications with reviewer's comments
+
+1. Avoid initializing with the same nonsense data
+	In "FusionEKF.cpp" line 75~79:
+    ```c++
+	// Avoid initializing nonsence data
+	if (ekf_.x_[0] < MIN_SENSOR_VALUE && ekf_.x_[1] < MIN_SENSOR_VALUE)
+	{
+		return;
+	}
+    ```
+	
+2. Dont make a predict if dt is too small
+	In "FusionEKF.cpp" line 137~141:
+    ```c++
+    // If two measurements are closed to each other, then don't predict
+    if ( dt > 0.001 )
+    {
+          ekf_.Predict();
+    }
+    ```
+  
+3. Avoid updating with nonsense radar data and make sure updating is safe
+	In "kalman_filter.cpp" line 63~68:
+    ```c++
+	// processing nonsense data (both data are too small)
+	if (x_(0)<=min_sensor_value_ && x_(1)<=min_sensor_value_)
+	{
+		return;
+	}
+	x_(0) = (x_(0)<=MIN_SENSOR_VALUE) ? MIN_SENSOR_VALUE : x_(0);
+    ```
+	
+	Then the updating is safe:
+    ```c++
+	z_pred(0) = sqrt(px*px+py*py); // This operation is safe since px and py have been protected by min_sensor_value_
+	z_pred(1) = atan2(py,px); // This operation is safe since px is set to be >=min_sensor_value_ (line 68)
+	z_pred(2) = (px*vx+py*vy)/z_pred(0); // This operation is safe since px and py have been protected by min_sensor_value_
+    ```
+	
+4. Code Efficiency
+	Modified codes as reviewer's suggestion
+	
+	Form:
+    ```c++
+	MatrixXd S = H_ * P_ * Ht + R_; 
+	MatrixXd PHt = P_ * Ht;
+    ```
+	
+	To:
+    ```c++
+	MatrixXd PHt = P_ * Ht; 
+	MatrixXd S = H_ * PHt + R_;
+    ```
